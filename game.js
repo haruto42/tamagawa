@@ -13,6 +13,8 @@ muteBtn.addEventListener("click", () => {
 // 画面の縮尺。1より小さいほど、キャラや地形が小さく(視野が広く)見える。
 // 内部の画面を 1/VIEW_SCALE 倍の大きさで作り、CSS で表示サイズに縮める
 const VIEW_SCALE = 0.75;
+const MIN_WORLD_H = 620; // 木や小屋、川が縦に収まるのに必要な高さ
+let viewScale = VIEW_SCALE;
 
 // 川は画面中央の横帯。下の岸に主人公、上の岸に相手を置く
 const RIVER = { y: 0, height: 0 };
@@ -136,8 +138,13 @@ function place(o) {
 function layout() {
   const prevWorldW = worldW;
   const prevH = canvas.height;
-  canvas.width = Math.round(window.innerWidth / VIEW_SCALE);
-  canvas.height = Math.round(window.innerHeight / VIEW_SCALE);
+  // 縦は必ず MIN_WORLD_H 以上の高さを映す(低い画面ではさらに縮める)
+  viewScale = Math.min(VIEW_SCALE, window.innerHeight / MIN_WORLD_H);
+  canvas.width = Math.round(window.innerWidth / viewScale);
+  canvas.height = Math.round(window.innerHeight / viewScale);
+  // スマホのアドレスバーで 100vh が実際の表示域より大きくなるため、表示域の大きさをそのまま使う
+  canvas.style.width = `${window.innerWidth}px`;
+  canvas.style.height = `${window.innerHeight}px`;
   worldW = Math.max(1600, canvas.width * 2.5);
 
   // 向こう岸は相手が立つだけの細さ、川も細め
@@ -862,7 +869,7 @@ function drawStick() {
   if (touch.id === null) return;
   // スティックは画面上の位置(CSS px)で扱うので、内部の画面の大きさに合わせて描く
   ctx.save();
-  ctx.scale(1 / VIEW_SCALE, 1 / VIEW_SCALE);
+  ctx.scale(1 / viewScale, 1 / viewScale);
   ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
   ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
   ctx.lineWidth = 2;
