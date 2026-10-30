@@ -10,6 +10,10 @@ muteBtn.addEventListener("click", () => {
   muteBtn.textContent = Sound.toggleMute() ? "🔇" : "🔊";
 });
 
+// 画面の縮尺。1より小さいほど、キャラや地形が小さく(視野が広く)見える。
+// 内部の画面を 1/VIEW_SCALE 倍の大きさで作り、CSS で表示サイズに縮める
+const VIEW_SCALE = 0.75;
+
 // 川は画面中央の横帯。下の岸に主人公、上の岸に相手を置く
 const RIVER = { y: 0, height: 0 };
 
@@ -132,8 +136,8 @@ function place(o) {
 function layout() {
   const prevWorldW = worldW;
   const prevH = canvas.height;
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.width = Math.round(window.innerWidth / VIEW_SCALE);
+  canvas.height = Math.round(window.innerHeight / VIEW_SCALE);
   worldW = Math.max(1600, canvas.width * 2.5);
 
   // 向こう岸は相手が立つだけの細さ、川も細め
@@ -856,6 +860,9 @@ function fillTiles(sprite, x, y, w, h) {
 
 function drawStick() {
   if (touch.id === null) return;
+  // スティックは画面上の位置(CSS px)で扱うので、内部の画面の大きさに合わせて描く
+  ctx.save();
+  ctx.scale(1 / VIEW_SCALE, 1 / VIEW_SCALE);
   ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
   ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
   ctx.lineWidth = 2;
@@ -868,6 +875,7 @@ function drawStick() {
   ctx.beginPath();
   ctx.arc(touch.originX + touch.dx, touch.originY + touch.dy, 25, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
 }
 
 function draw() {
