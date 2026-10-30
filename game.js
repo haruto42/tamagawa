@@ -15,6 +15,10 @@ muteBtn.addEventListener("click", () => {
 const VIEW_SCALE = 0.75;
 const MIN_WORLD_H = 620; // 木や小屋、川が縦に収まるのに必要な高さ
 let viewScale = VIEW_SCALE;
+// ゲームを映す高さ。縦向きのタッチ端末では、下の操作用の余白ぶん canvas の高さより小さい
+let worldH = 0;
+const touchDevice = window.matchMedia("(pointer: coarse)").matches;
+const PAD_RATIO = 0.2;
 
 // 川は画面中央の横帯。下の岸に主人公、上の岸に相手を置く
 const RIVER = { y: 0, height: 0 };
@@ -132,24 +136,29 @@ let cameraX = 0;
 
 function place(o) {
   o.x = o.rx * worldW - o.size / 2;
-  o.y = o.ry * canvas.height - o.size / 2;
+  o.y = o.ry * worldH - o.size / 2;
 }
 
 function layout() {
   const prevWorldW = worldW;
-  const prevH = canvas.height;
-  // 縦は必ず MIN_WORLD_H 以上の高さを映す(低い画面ではさらに縮める)
-  viewScale = Math.min(VIEW_SCALE, window.innerHeight / MIN_WORLD_H);
+  const prevH = worldH;
+  // タッチ端末を縦向きで持っているときは、画面下に操作用の余白(PAD)を取る
+  const padCss = touchDevice && window.innerHeight > window.innerWidth ? Math.round(window.innerHeight * PAD_RATIO) : 0;
+  // ゲーム部分は必ず MIN_WORLD_H 以上の高さを映す(低い画面ではさらに縮める)
+  viewScale = Math.min(VIEW_SCALE, (window.innerHeight - padCss) / MIN_WORLD_H);
   canvas.width = Math.round(window.innerWidth / viewScale);
   canvas.height = Math.round(window.innerHeight / viewScale);
+  worldH = Math.round((window.innerHeight - padCss) / viewScale);
   // スマホのアドレスバーで 100vh が実際の表示域より大きくなるため、表示域の大きさをそのまま使う
   canvas.style.width = `${window.innerWidth}px`;
   canvas.style.height = `${window.innerHeight}px`;
   worldW = Math.max(1600, canvas.width * 2.5);
 
   // 向こう岸は相手が立つだけの細さ、川も細め
-  RIVER.y = Math.max(canvas.height * 0.2, 130);
-  RIVER.height = Math.max(canvas.height * 0.3, 175);
+  RIVER.y = Math.max(worldH * 0.2, 130);
+  RIVER.height = Math.max(worldH * 0.3, 175);
+  // 作業台のボタンは、スティックを動かす下の方を避けて、川の真ん中あたりに出す
+  craftEl.style.top = `${(RIVER.y + RIVER.height / 2) * viewScale}px`;
 
   // 初回は割合から配置、リサイズ後は現在位置を拡縮して引き継ぐ
   const first = prevWorldW === 0;
@@ -158,16 +167,16 @@ function layout() {
       place(o);
     } else {
       o.x = (o.x * worldW) / prevWorldW;
-      o.y = (o.y * canvas.height) / prevH;
+      o.y = (o.y * worldH) / prevH;
     }
   }
   for (const t of [...trees, cabin]) {
     if (first) {
       t.x = t.rx * worldW - t.w / 2;
-      t.y = t.ry * canvas.height - t.h;
+      t.y = t.ry * worldH - t.h;
     } else {
       t.x = (t.x * worldW) / prevWorldW;
-      t.y = (t.y * canvas.height) / prevH;
+      t.y = (t.y * worldH) / prevH;
     }
   }
   placeWorkbench();
@@ -671,7 +680,7 @@ function update() {
   let nx = player.x + dx * player.speed;
   let ny = player.y + dy * player.speed;
   nx = Math.max(0, Math.min(worldW - player.size, nx));
-  ny = Math.max(0, Math.min(canvas.height - player.size, ny));
+  ny = Math.max(0, Math.min(worldH - player.size, ny));
 
   // 軸ごとに判定して、壁(川)に沿って滑れるようにする
   if (canStand(nx, player.y, player.size) && !hitsObstacle(nx, player.y)) player.x = nx;
@@ -865,6 +874,24 @@ function fillTiles(sprite, x, y, w, h) {
   ctx.restore();
 }
 
+// 画面下の操作用の余白。ここをなぞってもスティックが出る
+function drawPad() {
+  if (worldH >= canvas.height) return;
+  ctx.fillStyle = "#1b2a49";
+  ctx.fillRect(0, worldH, canvas.width, canvas.height - worldH);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, worldH, canvas.width, 3);
+  if (touch.id === null) {
+    const cx = canvas.width / 2;
+    const cy = worldH + (canvas.height - worldH) / 2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 45, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
 function drawStick() {
   if (touch.id === null) return;
   // スティックは画面上の位置(CSS px)で扱うので、内部の画面の大きさに合わせて描く
@@ -892,11 +919,15 @@ function draw() {
   cameraX = Math.round(Math.max(0, Math.min(worldW - canvas.width, player.x + player.size / 2 - canvas.width / 2)));
   ctx.save();
   ctx.translate(-cameraX, 0);
+  // ゲームは上の worldH の範囲だけに描く
+  ctx.beginPath();
+  ctx.rect(cameraX, 0, canvas.width, worldH);
+  ctx.clip();
 
-  fillTiles(SPRITES.grass, cameraX, 0, canvas.width, canvas.height);
+  fillTiles(SPRITES.grass, cameraX, 0, canvas.width, worldH);
 
   for (const [rx, ry] of flowers) {
-    ctx.drawImage(SPRITES.flower, Math.round(rx * worldW), Math.round(ry * canvas.height));
+    ctx.drawImage(SPRITES.flower, Math.round(rx * worldW), Math.round(ry * worldH));
   }
 
   // 川: 波のコマを交互に切り替える。岸には砂のふちを付ける
@@ -954,6 +985,7 @@ function draw() {
   }
   drawParticles();
   ctx.restore();
+  drawPad();
   drawStick();
 }
 

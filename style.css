@@ -34,8 +34,8 @@ canvas {
 #craft {
   position: fixed;
   left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
+  top: 50%; /* 実際の位置は game.js が川の真ん中に合わせる */
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -164,4 +164,24 @@ canvas {
   background: rgba(0, 0, 0, 0.55);
   font-size: 1.3rem;
   touch-action: none;
+}
+
+/* 持ち物が増えても右上の音ボタンにかからないよう、折り返す */
+#inventory {
+  flex-wrap: wrap;
+  max-width: calc(100% - 76px);
+  gap: 6px;
+}
+
+@media (max-width: 480px) {
+  #inventory .slot {
+    min-width: 38px;
+    padding: 2px 4px;
+    font-size: 0.75rem;
+  }
+
+  #inventory img {
+    width: 28px;
+    height: 28px;
+  }
 }
