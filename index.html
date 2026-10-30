@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>多摩川で恋するゲーム</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="inventory"></div>
+  <p id="message"></p>
+  <button id="mute" type="button" aria-label="音の切り替え">🔊</button>
+  <div id="craft" hidden></div>
+  <div id="dialog" hidden>
+    <div class="dialog-box">
+      <p id="dialog-text"></p>
+      <div id="dialog-buttons"></div>
+    </div>
+  </div>
+  <script src="sprites.js"></script>
+  <script src="sounds.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
