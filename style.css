@@ -185,3 +185,58 @@ canvas {
     height: 28px;
   }
 }
+
+#timer {
+  position: fixed;
+  top: 62px;
+  right: 10px;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+#timer[hidden] {
+  display: none;
+}
+
+#dialog-extra {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+#dialog-extra[hidden] {
+  display: none;
+}
+
+.rta-label {
+  display: block;
+  font-size: 1rem;
+}
+
+.rta-label input {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+#best-record {
+  margin: 10px 0 !important;
+  font-size: 0.95rem !important;
+}
+
+#clear-record {
+  padding: 6px 12px;
+  border: 1px solid #fff;
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.85rem;
+}

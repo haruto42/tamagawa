@@ -473,14 +473,16 @@ function readInput() {
 const dialogEl = document.getElementById("dialog");
 const dialogTextEl = document.getElementById("dialog-text");
 const dialogButtonsEl = document.getElementById("dialog-buttons");
+const dialogExtraEl = document.getElementById("dialog-extra");
 let paused = false;
 let declinedUntil = 0; // 「やめておく」の直後にすぐ再表示しないための時刻
 let lastStepAt = 0; // 足音を鳴らした時刻
 
-function showDialog(text, buttons) {
+function showDialog(text, buttons, { extra = false } = {}) {
   paused = true;
   releaseStick();
   dialogTextEl.textContent = text;
+  dialogExtraEl.hidden = !extra;
   dialogButtonsEl.replaceChildren(
     ...buttons.map(({ label, className, icon, onClick }) => {
       const b = document.createElement("button");
@@ -662,7 +664,7 @@ function update() {
     // ハートが舞うのを少し見せてから、クリア画面を出す
     if (!clearShown && performance.now() - clearStart > CLEAR_DIALOG_MS) {
       clearShown = true;
-      showDialog("ゲームクリア!\n川を越えて、2人は会えました ♥", [
+      showDialog(`ゲームクリア!\n川を越えて、2人は会えました ♥${rtaResultText}`, [
         { label: "もう一度", onClick: () => location.reload() },
       ]);
     }
@@ -772,6 +774,7 @@ function update() {
   if (overlaps(player, partner)) {
     cleared = true;
     clearStart = now;
+    if (rtaOn) recordResult();
     messageEl.textContent = "会えた! ♥";
     spawnHearts((player.x + partner.x) / 2 + player.size / 2, (player.y + partner.y) / 2);
     Sound.fanfare();
@@ -989,8 +992,71 @@ function draw() {
   drawStick();
 }
 
+// RTA: キャラを選んでから「会えた」までのタイム。最高記録は Cookie に残す(この端末だけ)
+const timerEl = document.getElementById("timer");
+const rtaCheck = document.getElementById("rta-check");
+const bestEl = document.getElementById("best-record");
+const BEST_COOKIE = "tamagawa_best";
+let rtaOn = false;
+let rtaStart = 0;
+let lastTimerText = "";
+let rtaResultText = ""; // クリア画面に足す、タイムと記録の文
+
+// 「会えた」の瞬間のタイムを、自己ベストと比べて保存する
+function recordResult() {
+  const cs = Math.floor((clearStart - rtaStart) / 10);
+  const best = readBest();
+  if (best === null || cs < best) {
+    saveBest(cs);
+    rtaResultText = `\n\nタイム: ${formatTime(cs)}秒\n最高記録を更新!`;
+  } else {
+    rtaResultText = `\n\nタイム: ${formatTime(cs)}秒\n最高記録: ${formatTime(best)}秒`;
+  }
+}
+
+// 記録は 1/100 秒(整数)で扱う
+function readBest() {
+  const m = document.cookie.match(new RegExp(`(?:^|; )${BEST_COOKIE}=(\\d+)`));
+  return m ? Number(m[1]) : null;
+}
+
+function saveBest(cs) {
+  document.cookie = `${BEST_COOKIE}=${cs}; max-age=${60 * 60 * 24 * 365}; path=/; SameSite=Lax`;
+}
+
+function clearBest() {
+  document.cookie = `${BEST_COOKIE}=; max-age=0; path=/`;
+}
+
+function formatTime(cs) {
+  const min = Math.floor(cs / 6000);
+  const rest = ((cs % 6000) / 100).toFixed(2).padStart(5, "0");
+  return min > 0 ? `${min}:${rest}` : `${(cs / 100).toFixed(2)}`;
+}
+
+function renderBest() {
+  const best = readBest();
+  bestEl.textContent = best === null ? "最高記録: なし" : `最高記録: ${formatTime(best)}秒`;
+}
+
+document.getElementById("clear-record").addEventListener("click", () => {
+  if (readBest() !== null && !confirm("最高記録を消しますか?")) return;
+  clearBest();
+  renderBest();
+});
+
+function updateTimer(now) {
+  if (!rtaOn) return;
+  const text = formatTime(Math.floor(((cleared ? clearStart : now) - rtaStart) / 10));
+  if (text !== lastTimerText) {
+    lastTimerText = text;
+    timerEl.textContent = text;
+  }
+}
+
 function loop() {
   update();
+  updateTimer(performance.now());
   draw();
   requestAnimationFrame(loop);
 }
@@ -1001,6 +1067,12 @@ function chooseCharacter(playerSprite, partnerSprite) {
   partner.sprite = partnerSprite;
   closeDialog();
   Sound.start();
+
+  rtaOn = rtaCheck.checked;
+  if (rtaOn) {
+    rtaStart = performance.now();
+    timerEl.hidden = false;
+  }
 }
 
 layout();
@@ -1008,5 +1080,6 @@ renderInventory();
 showDialog("操作するキャラを選んでね", [
   { label: "男の子", icon: SPRITES.boy, onClick: () => chooseCharacter(SPRITES.boy, SPRITES.girl) },
   { label: "女の子", icon: SPRITES.girl, onClick: () => chooseCharacter(SPRITES.girl, SPRITES.boy) },
-]);
+], { extra: true });
+renderBest();
 loop();

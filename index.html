@@ -9,6 +9,7 @@
 <body>
   <canvas id="game"></canvas>
   <div id="inventory"></div>
+  <p id="timer" hidden></p>
   <p id="message"></p>
   <button id="mute" type="button" aria-label="音の切り替え">🔊</button>
   <div id="craft" hidden></div>
@@ -16,6 +17,11 @@
     <div class="dialog-box">
       <p id="dialog-text"></p>
       <div id="dialog-buttons"></div>
+      <div id="dialog-extra" hidden>
+        <label class="rta-label"><input type="checkbox" id="rta-check"> RTAモード(タイマーを出す)</label>
+        <p id="best-record"></p>
+        <button type="button" id="clear-record">最高記録を消す</button>
+      </div>
     </div>
   </div>
   <script src="sprites.js"></script>
