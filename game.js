@@ -1017,14 +1017,24 @@ function recordResult() {
   }
 }
 
-// 記録は 1/100 秒(整数)で扱う
+// マップの長さなどタイムに影響する調整をしたら、この版番号を上げる。
+// 古い版(版のない旧形式も含む)の最高記録は、読み込んだときに消す
+const GAME_VERSION = 2;
+
+// 記録は 1/100 秒(整数)で扱い、Cookie には「v版番号_記録」の形で入れる
 function readBest() {
-  const m = document.cookie.match(new RegExp(`(?:^|; )${BEST_COOKIE}=(\\d+)`));
-  return m ? Number(m[1]) : null;
+  const m = document.cookie.match(new RegExp(`(?:^|; )${BEST_COOKIE}=([^;]*)`));
+  if (!m) return null;
+  const [ver, cs] = m[1].split("_");
+  if (ver !== `v${GAME_VERSION}` || !/^\d+$/.test(cs ?? "")) {
+    clearBest();
+    return null;
+  }
+  return Number(cs);
 }
 
 function saveBest(cs) {
-  document.cookie = `${BEST_COOKIE}=${cs}; max-age=${60 * 60 * 24 * 365}; path=/; SameSite=Lax`;
+  document.cookie = `${BEST_COOKIE}=v${GAME_VERSION}_${cs}; max-age=${60 * 60 * 24 * 365}; path=/; SameSite=Lax`;
 }
 
 function clearBest() {
@@ -1039,7 +1049,8 @@ function formatTime(cs) {
 
 function renderBest() {
   const best = readBest();
-  bestEl.textContent = best === null ? "最高記録: なし" : `最高記録: ${formatTime(best)}秒`;
+  const record = best === null ? "なし" : `${formatTime(best)}秒`;
+  bestEl.textContent = `最高記録: ${record} (ver ${GAME_VERSION})`;
 }
 
 document.getElementById("clear-record").addEventListener("click", () => {
