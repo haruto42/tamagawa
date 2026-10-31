@@ -14,6 +14,7 @@ muteBtn.addEventListener("click", () => {
 // 内部の画面を 1/VIEW_SCALE 倍の大きさで作り、CSS で表示サイズに縮める
 const VIEW_SCALE = 0.75;
 const MIN_WORLD_H = 620; // 木や小屋、川が縦に収まるのに必要な高さ
+const MIN_WORLD_W = 3200; // マップの最低の横幅
 let viewScale = VIEW_SCALE;
 // ゲームを映す高さ。縦向きのタッチ端末では、下の操作用の余白ぶん canvas の高さより小さい
 let worldH = 0;
@@ -152,7 +153,9 @@ function layout() {
   // スマホのアドレスバーで 100vh が実際の表示域より大きくなるため、表示域の大きさをそのまま使う
   canvas.style.width = `${window.innerWidth}px`;
   canvas.style.height = `${window.innerHeight}px`;
-  worldW = Math.max(1600, canvas.width * 2.5);
+  // 画面の幅で木などの距離が極端に変わらないよう、最低でも MIN_WORLD_W は確保し、
+  // 広い画面でも画面幅の1.3倍までにとどめる
+  worldW = Math.max(MIN_WORLD_W, canvas.width * 1.3);
 
   // 向こう岸は相手が立つだけの細さ、川も細め
   RIVER.y = Math.max(worldH * 0.2, 130);
